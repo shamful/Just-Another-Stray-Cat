@@ -8,7 +8,7 @@ const rl = readline.createInterface({
 function gameLoop(){
     // 1. Check if the cat is dead before starting the turn
     if (playerStats.health <= 0) {
-        console.log("\n💀 Game Over! Your stray cat couldn't survive the city...");
+        console.log("\n💀 Game Over! Our stray cat couldn't survive the city...");
         rl.close();
         return;
     }
@@ -17,7 +17,7 @@ function gameLoop(){
     displayStats();
 
     // 3. Print main menu options
-    console.log("\nWhat would you like to do?");
+    console.log("\nWhat should we do?");
     console.log("1. Scavenge");
     console.log("2. Rest");
     console.log("3. Eat");
@@ -56,7 +56,7 @@ function gameLoop(){
 }
 
 function promptRestMenu() {
-    console.log("\nWhere would you want to rest?");
+    console.log("\nWhere should we rest?");
     console.log("1. On the street (Dangerous, free, chance of extra stamina)");
     console.log("2. In an alleyway (Medium risk, optional materials cost)");
     console.log("3. Bakery rooftop (Safe, costs 1 Stamina, extra health)");
@@ -69,6 +69,7 @@ function promptRestMenu() {
             rest(locationChoice);
         } else {
             console.log("❗ Invalid rest spot selected!");
+            gameLoop();
         }
 
         // gameLoop();
@@ -99,16 +100,19 @@ function displayStats(){
 
 function scavenge(){
     if( playerStats.stamina > 0 ){
-        playerStats.stamina -= 1;
-        let diceRoll = Math.floor(Math.random() * 3);
-        if( diceRoll === 1 ){
-            playerStats.food += 1;
-            console.log("Found food!");
-        } else if (diceRoll === 2) {
-            playerStats.nestingMaterials += 1;
-            console.log("Found nesting materials!");
-        } else {
-            console.log("Found nothing...");
+        adjustStamina(-1);
+        let foundFood = Math.random() < 0.5;
+        let foundNestingMaterials = Math.random() < 0.5;
+        if( foundFood ){
+            adjustFood(1);
+            console.log("🐟 Found food!");
+        }
+        if ( foundNestingMaterials ) {
+            adjustNestingMaterials(1);
+            console.log("📦 Found nesting materials!");
+        }
+        if (!foundFood && !foundNestingMaterials) {
+            console.log("😾 Found nothing...");
         }
     } else {
         console.log("😿 Too tired to scavenge...");
@@ -123,7 +127,7 @@ function rest(locationChoice){
     let dogAttack, catAttack, humanAttack, humanPetting;
 
     if(locationChoice === 1){ // street
-        console.log("Against all your instincts, you decided to sleep in the street.");
+        console.log("Against all our instincts, we decided to sleep in the street.");
         
         // Roll dice for positive and negative rest interruptions
         dogAttack = Math.random() < 0.4;
@@ -132,18 +136,18 @@ function rest(locationChoice){
 
         if(dogAttack){
             adjustHealth(-2);
-            console.log("🐕 A stray dog bit you! Lost 2 Health.");
+            console.log("🐕 A stray dog bit us! Lost 2 Health.");
         }
         
         if(humanAttack){
             adjustHealth(-1);
-            console.log("A human child kicked you! Lost 1 Health.");
+            console.log("🥾 A mean kid kicked us! Lost 1 Health.");
         }
         
         if(humanPetting) {
             adjustHealth(1);
             adjustStamina(1);
-            console.log("A kind human petted you while you were resting. Gained 1 Health and 1 Stamina.");
+            console.log("A kind human petted us... feels so goood! Gained 1 Health and 1 Stamina.");
         }
 
         if(!dogAttack && !humanAttack) console.log("Against all odds you got a peaceful rest ☮️");
@@ -152,7 +156,7 @@ function rest(locationChoice){
         gameLoop();
 
     } else if (locationChoice === 2) { // alleyway
-        console.log("You decide to sleep in one of your favourite alleyways.");
+        console.log("We decide to sleep in the alley.");
 
         if(playerStats.nestingMaterials > 0) {
            
@@ -162,29 +166,32 @@ function rest(locationChoice){
 
                     case 'Y':
                         adjustNestingMaterials(-1);
-                        catAttack = Math.random() < 0.25;
+                        catAttack = Math.random() < 0.2;
                         if(catAttack) {
                             adjustHealth(-1);
                             adjustFood(-1);
                             adjustNestingMaterials(-1);
-                            console.log("\n😼 A rival cat attacks you, steals your food and nesting materials, pees in your spot and walks off!");
+                            console.log("\n😼 A rival cat attacks us, steals our food and nesting materials, pees in our spot and walks off! Lost 1 Health, Food, and Nesting Materials.");
+                            
                         } else {
                             adjustStamina(1);
                             adjustHealth(1);
-                            console.log("\nYou had a peaceful rest! Gained 1 Stamina and 1 Health.")
+                            console.log("\nWe had a peaceful rest! Gained 1 Stamina and 1 Health.")
+                            
                         }
+                        gameLoop();
                         break;
 
                     case 'N':
                         unprotectedAlleyRest();
+                        break;
 
                     default:
                         console.log("❗ Invalid choice! Answer 'Y' or 'N'");
                         gameLoop();
                         break;
                 }
-                adjustStamina(1);
-                gameLoop();
+                
             });
         } else {
             unprotectedAlleyRest();
@@ -192,11 +199,11 @@ function rest(locationChoice){
 
     } else if (locationChoice === 3) { // rooftop
         if(playerStats.stamina > 0){
-            console.log("Feeling for a scenic view and some piece, you climb your way up to the rooftop of the local bakery. Lose 1 Stamina. Gain 2 Health.");
+            console.log("Feeling for a scenic view and some piece, we climb your way up to the rooftop of the local bakery. Lose 1 Stamina. Gain 2 Health.");
             adjustStamina(-1);
             adjustHealth(2);
         } else {
-            console.log("😫 You don't have enough stamina to climb up.");
+            console.log("😫 We don't have enough stamina to climb up.");
         }
         gameLoop();
     }
@@ -204,17 +211,26 @@ function rest(locationChoice){
 
 function eatFood(){
     if(playerStats.food > 0){
-        playerStats.food -= 1;
-        playerStats.health += 0.5;
+        if(playerStats.health < playerStats.maxHealth){
+            adjustFood(-1);
+            adjustHealth(0.5);
+            console.log("🍖 Nom nom... Restored 0.5 Health!");
+        } else {
+            console.log("Not hungry... let's save our food for later.");
+        }
+    } else {
+        console.log("😾 We don't have any food...");
     }
 }
 
 function adjustFood(x){
-    playerStats.food = Math.max(playerStats.food - 1, 0);
+    playerStats.food += x;
+    playerStats.food = Math.max(playerStats.food, 0);
 }
 
-function adjustNestingMaterials(){
-    playerStats.nestingMaterials = Math.max(playerStats.nestingMaterials - 1, 0);   
+function adjustNestingMaterials(x){
+    playerStats.nestingMaterials += x;
+    playerStats.nestingMaterials = Math.max(playerStats.nestingMaterials, 0);   
 }
 
 function adjustHealth(x){
@@ -230,22 +246,22 @@ function adjustStamina(x){
 }
 
 function unprotectedAlleyRest(){
-    catAttack = Math.random() < 0.25;
-    dogAttack = Math.random() < 0.2;
+    let catAttack = Math.random() < 0.3;
+    let dogAttack = Math.random() < 0.25;
     if(catAttack) {
         adjustHealth(-1);
         adjustFood(-1);
-        console.log("😼 A rival cat attacks you and steals your food.");
+        console.log("😼 A rival cat attacks us and steals our food.");
     }
     if(dogAttack) {
         adjustHealth(-2);
-        console.log("🐕 A stray dog bit you! Lost 2 Health.");
+        console.log("🐕 A stray dog bit us! Lost 2 Health.");
     }
     if(!catAttack && !dogAttack){
-        adjustStamina(1);
+        adjustStamina(2);
         adjustHealth(1);
+        console.log("😸 We had a peaceful rest!");
     }
-    adjustStamina(1);
     gameLoop();    
 }
 
