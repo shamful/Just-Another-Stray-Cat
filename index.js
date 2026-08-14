@@ -71,7 +71,7 @@ function promptRestMenu() {
             console.log("❗ Invalid rest spot selected!");
         }
 
-        gameLoop();
+        // gameLoop();
     });
 }
 
@@ -120,7 +120,7 @@ function rest(locationChoice){
     // 0 = street, 1 = alleyway box, 2 = rooftop
     // let restLoc = Math.floor(Math.random() * 3);
 
-    let dogAttack, humanAttack, humanPetting;
+    let dogAttack, catAttack, humanAttack, humanPetting;
 
     if(locationChoice === 1){ // street
         console.log("Against all your instincts, you decided to sleep in the street.");
@@ -149,22 +149,56 @@ function rest(locationChoice){
         if(!dogAttack && !humanAttack) console.log("Against all odds you got a peaceful rest ☮️");
 
         adjustStamina(1);
+        gameLoop();
 
     } else if (locationChoice === 2) { // alleyway
         console.log("You decide to sleep in one of your favourite alleyways.");
 
-        dogAttack = Math.random() < 0.3;
-        if(dogAttack) {
-            adjustHealth(-2);
-            console.log("🐕 A stray dog ambushed you while sleeping! Lost 2 Health.");
+        if(playerStats.nestingMaterials > 0) {
+           
+            rl.question("\nUse Nesting Materials? Y/N: ", (choice) => {
+                console.log("\n-------------------------------------------");
+                switch(choice.trim().toUpperCase()){
+
+                    case 'Y':
+                        adjustNestingMaterials(-1);
+                        catAttack = Math.random() < 0.25;
+                        if(catAttack) {
+                            adjustHealth(-1);
+                            adjustFood(-1);
+                            adjustNestingMaterials(-1);
+                            console.log("\n😼 A rival cat attacks you, steals your food and nesting materials, pees in your spot and walks off!");
+                        } else {
+                            adjustStamina(1);
+                            adjustHealth(1);
+                            console.log("\nYou had a peaceful rest! Gained 1 Stamina and 1 Health.")
+                        }
+                        break;
+
+                    case 'N':
+                        unprotectedAlleyRest();
+
+                    default:
+                        console.log("❗ Invalid choice! Answer 'Y' or 'N'");
+                        gameLoop();
+                        break;
+                }
+                adjustStamina(1);
+                gameLoop();
+            });
         } else {
-            adjustStamina(1);
+            unprotectedAlleyRest();
         }
 
     } else if (locationChoice === 3) { // rooftop
-        console.log("Feeling for a scenic view and some piece, you climb your way up to the rooftop of the local bakery. Lose 1 Stamina. Gain 2 Health.");
-        adjustStamina(-1);
-        adjustHealth(2);
+        if(playerStats.stamina > 0){
+            console.log("Feeling for a scenic view and some piece, you climb your way up to the rooftop of the local bakery. Lose 1 Stamina. Gain 2 Health.");
+            adjustStamina(-1);
+            adjustHealth(2);
+        } else {
+            console.log("😫 You don't have enough stamina to climb up.");
+        }
+        gameLoop();
     }
 }
 
@@ -175,10 +209,18 @@ function eatFood(){
     }
 }
 
+function adjustFood(x){
+    playerStats.food = Math.max(playerStats.food - 1, 0);
+}
+
+function adjustNestingMaterials(){
+    playerStats.nestingMaterials = Math.max(playerStats.nestingMaterials - 1, 0);   
+}
+
 function adjustHealth(x){
     playerStats.health += x;
     playerStats.health = Math.min( playerStats.health, playerStats.maxHealth);
-    playerStats.health = Math.max (playerStats.health, 0);
+    playerStats.health = Math.max(playerStats.health, 0);
 }
 
 function adjustStamina(x){
@@ -187,6 +229,25 @@ function adjustStamina(x){
     playerStats.stamina = Math.max(playerStats.stamina, 0);
 }
 
+function unprotectedAlleyRest(){
+    catAttack = Math.random() < 0.25;
+    dogAttack = Math.random() < 0.2;
+    if(catAttack) {
+        adjustHealth(-1);
+        adjustFood(-1);
+        console.log("😼 A rival cat attacks you and steals your food.");
+    }
+    if(dogAttack) {
+        adjustHealth(-2);
+        console.log("🐕 A stray dog bit you! Lost 2 Health.");
+    }
+    if(!catAttack && !dogAttack){
+        adjustStamina(1);
+        adjustHealth(1);
+    }
+    adjustStamina(1);
+    gameLoop();    
+}
 
 // displayStats();
 // rest(1);
