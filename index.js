@@ -11,8 +11,8 @@ const playerStats =
     "maxHealth": 8,
     "stamina": 3,
     "maxStamina": 5,
-    "food": 3,
-    "nestingMaterials": 2,
+    "food": 1,
+    "nestingMaterials": 0,
     "humanTrust": 0,
     "pettedCount": 0, // when this reaches 3 humanTrust increases by 1
     "catAllies": 0 // if dog attack won, this increases by 1
@@ -47,16 +47,17 @@ function printIntro() {
                                 INTRO
 =============================================================================
 
-Your nose flares, the scent of salt air from the river mixes with stale rain 
-on the cobblestones. 
+The scent of salt air from the river mixes with stale rain 
+on the cobblestones.
 
-You wake behind a row of rusted bins tucked into a steep Lisboa alley, 
-your belly hollow and fur slicked with soot. Faint streetlights 
-cast long, sharp shadows across the narrow passage. 
+You wake behind a row of rusted bins tucked into a side alley, fur wet and
+belly hollow.
+
+Faint streetlights cast long, sharp shadows across the narrow passage. 
 
 The city never sleeps, and it certainly doesn't look out for stray cats.
 
-Your ears twitch from the busy night sounds. You need food, dry shelter, and 
+Your ears twitch from the late night sounds. You need food, dry shelter, and 
 a warm spot to rest before the river chill sets in.
 
 =============================================================================
@@ -68,7 +69,21 @@ function gameLoop(){
     // 1. Check if the cat is dead before starting the turn
     if (playerStats.health <= 0) {
         displayStats();
-        console.log("\n💀 Game Over! Our stray cat couldn't survive the city...");
+        console.log("\n💀 Game Over! Our stray cat couldn't survive the city... 🎻");
+        rl.close();
+        return;
+    }
+    
+    if ( playerStats.catAllies >= 3 ){
+        displayStats();
+        console.log("\n👑 VICTORY! You scared off enough dogs to earn the respect of the city strays. You rule the streets of Lisboa!");
+        rl.close();
+        return;
+    }
+
+    if (playerStats.humanTrust >= 3) {
+        displayStats();
+        console.log("\n🏠 VICTORY! A kind human took you off the streets. You're an indoor cat now!");
         rl.close();
         return;
     }
@@ -81,12 +96,10 @@ function gameLoop(){
     console.log("1. Scavenge");
     console.log("2. Rest");
     console.log("3. Eat");
-    console.log("4. Build shelter (Costs 5 Nesting Materials, 2 Stamina, 1 Food)");
     console.log("0. Quit Game");
 
     // 4. Prompt the player for input
-    rl.question("\nEnter your choice (1-3): ", (answer) => {
-        console.log("\n-------------------------------------------");
+    rl.question("\nEnter your choice (0-3): ", (answer) => {
 
         switch(answer.trim()){
             case '0':
@@ -108,12 +121,8 @@ function gameLoop(){
                 gameLoop();
                 break;
 
-            case '4':
-                buildShelter();
-                break;
-
             default:
-                console.log("❗ Invalid choice! Pick 1, 2, or 3.");
+                console.log("❗ Invalid choice! Pick 1, 2, 3 or 0.");
                 gameLoop();
                 break;
         };
@@ -127,7 +136,6 @@ function promptRestMenu() {
     console.log("3. Bakery rooftop (Safe, costs 1 Stamina, extra health)");
 
     rl.question("\nChoose rest spot (1-3): ", (choice) => {
-        console.log("\n-------------------------------------------");
         const locationChoice = parseInt(choice.trim());
 
         if( locationChoice >= 1 && locationChoice <= 3){
@@ -186,20 +194,12 @@ function rest(locationChoice){
     let dogAttack, catAttack, humanAttack, humanPetting;
 
     if(locationChoice === 1){ // street
-        console.log("Against all our instincts, we decided to sleep in the street.");
+        console.log("Feeling lucky, we decide to sleep in the street.");
         
         // Roll dice for positive and negative rest interruptions
-        dogAttack = Math.random() < 0.4;
         humanAttack = Math.random() < 0.3;
         humanPetting = Math.random() < 0.3;
-
-        if(dogAttack){
-            adjustHealth(-2);
-            console.log("\n************");
-            console.log("🐕 A stray dog bit us!");
-            console.log("📐 Lost 2 Health.");
-            console.log("************");
-        }
+        dogAttack = Math.random() < 0.4;
         
         if(humanAttack){
             adjustHealth(-1);
@@ -225,14 +225,12 @@ function rest(locationChoice){
                 console.log("\n************");
                 console.log("🤙🏽 We've been petted three times!");
                 console.log("📐 Gained 1 Human Trust");
-                console.log("\n************");
-
+                console.log("************");
             } else {
-                console.log(`${playerStats.pettedCount}/3 pettings needed for Trust`);
+                console.log(`ℹ️ ${playerStats.pettedCount}/3 pettings needed for Trust`);
             }
         }
 
-                
         if(!dogAttack && !humanAttack){
             adjustStamina(1);
             console.log("\n************");
@@ -240,9 +238,14 @@ function rest(locationChoice){
             console.log("📐 Gained 1 Stamina.");
             console.log("************");
         }
-        
-        // adjustStamina(1);
-        gameLoop();
+
+        if(dogAttack){
+            handleDogPrompt();
+        } else {
+            gameLoop();
+        }
+       
+        // gameLoop();
 
     } else if (locationChoice === 2) { // alleyway
         console.log("We decide to sleep in the alley.");
@@ -291,9 +294,9 @@ function rest(locationChoice){
         }
 
     } else if (locationChoice === 3) { // rooftop
-        if(playerStats.stamina > 0){
+        if(playerStats.stamina >= 2){
             console.log("Feeling for a scenic view and some piece, we climb our way up to the rooftop of the local bakery.");
-            console.log("📐 Lose 1 Stamina. Gain 2 Health.");
+            console.log("📐 Lose 2 Stamina. Gain 2 Health.");
             adjustStamina(-2);
             adjustHealth(2);
         } else {
@@ -301,6 +304,74 @@ function rest(locationChoice){
         }
         gameLoop();
     }
+}
+
+function handleDogPrompt(){
+    // IF food > 0:
+    if( playerStats.food > 0 ){
+        // game prompts: "Toss 1 Food to distract the dog? (Y/N)"
+        console.log("\nA dog approaches growling at us. This could end badly...");
+        rl.question("Toss 1 Food to distract the dog❔ (Y/N)", (choice) => {
+            // IF Y: "You toss some food to the dog and make a quick escape"
+            if( choice.trim().toUpperCase() === "Y"){
+                adjustFood(-1);
+                console.log("\n************");
+                console.log("You toss some food at the dog and make a quick escape.");
+                console.log("Gave up 1 Food.");
+                if(playerStats.food === 0) console.log("‼️ That was our last bit of grub. We need to find more food!");
+                console.log("************");
+                gameLoop();
+            } else {
+                attemptDogScare();
+            }
+        });
+
+    } else {
+        attemptDogScare();
+    }
+}
+
+function attemptDogScare(){
+    // Else:
+    if( playerStats.health <= 2 ){
+        // IF health <= 2: 20% chance to scare dog away on adrenaline.
+        let scareDogAway = Math.random() < 0.2;
+        if( scareDogAway ){
+            adjustCatAllies(1);
+            console.log("\n************");
+            console.log("\n***ADRENALINE SURGE***");
+            console.log("In our disorientated moment of desparation, something takes over and we channel OUR inner lion. Hissing menacingly, we arch our back and puff our fur, somehow causing the dog to piss itself and run away wimpering.");
+            console.log("Holy shit! That actually worked... we scared the dog away! Gain 1 Cat Ally.");
+            console.log("************");
+            gameLoop();
+        } else {
+            standardDogAttack();
+        }
+
+    } else if ( playerStats.health > 2 && playerStats.stamina > 1 ){
+        // ELSE IF health > 2 && stamina > 1: roll dice giving cat chance to puff up, hiss and scare dog.
+        let scareDogAway = Math.random() < 0.3;
+        if( scareDogAway ){
+            adjustCatAllies(1);
+            console.log("\n************");
+            console.log("We hiss menacingly, arch our back and puff our fur, scaring the dog away.");
+            console.log("Can't believe that worked. That ain't no dog!");
+            console.log("************");
+            gameLoop();
+        } else {
+            standardDogAttack();
+        }
+    } else {
+        standardDogAttack();
+    }
+}
+function standardDogAttack(){
+    adjustHealth(-2);
+    console.log("\n************");
+    console.log("🐕 A stray dog bit us!");
+    console.log("📐 Lost 2 Health.");
+    console.log("************");
+    gameLoop();
 }
 
 function eatFood(){
@@ -350,26 +421,26 @@ function adjustCatAllies(x){
 }
 
 function unprotectedAlleyRest(){
-    let catAttack = Math.random() < 0.3;
-    let dogAttack = Math.random() < 0.25;
+    let catAttack = Math.random() < 0.4;
+    let dogAttack = Math.random() < 0.3;
+
     if(catAttack) {
         adjustHealth(-1);
         adjustFood(-1);
         console.log("😼 A rival cat attacks us and steals our food.");
     }
-    if(dogAttack) {
-        adjustHealth(-2);
-        console.log("\n************");
-        console.log("🐕 A stray dog bit us!");
-        console.log("📐 Lost 2 Health.");
-        console.log("************");
-    }
+
     if(!catAttack && !dogAttack){
         adjustStamina(2);
         adjustHealth(1);
         console.log("😸 We had a peaceful rest!");
     }
-    gameLoop();    
+
+    if(dogAttack) {
+        handleDogPrompt();
+    } else {
+        gameLoop();
+    }
 }
 
 // displayStats();
