@@ -1,3 +1,4 @@
+// Imports
 const readline = require('readline');
 
 const rl = readline.createInterface({
@@ -5,6 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+// Display and setup
 const playerStats = 
 {
     "health": 3,
@@ -65,6 +67,21 @@ a warm spot to rest before the river chill sets in.
     console.log(introText);
 }
 
+function displayStats(){
+    console.log(
+`\n=== STRAY CAT SURVIVAL ===
+    Health: ${playerStats.health}/${playerStats.maxHealth}
+    Stamina: ${playerStats.stamina}/${playerStats.maxStamina}
+    Food: ${playerStats.food}
+    Nesting Materials (cardboard, rags): ${playerStats.nestingMaterials}
+    Human Trust: ${playerStats.humanTrust}
+    Cat Allies: ${playerStats.catAllies}
+==========================`
+    );
+}
+
+
+// Main game loop
 function gameLoop(){
     // 1. Check if the cat is dead before starting the turn
     if (playerStats.health <= 0) {
@@ -129,42 +146,7 @@ function gameLoop(){
     });
 }
 
-function promptRestMenu() {
-    console.log("\nWhere should we rest?");
-    console.log("1. On the street (Dangerous, free, chance of extra stamina)");
-    console.log("2. In an alleyway (Medium risk, optional materials cost)");
-    console.log("3. Bakery rooftop (Safe, costs 1 Stamina, extra health)");
-
-    rl.question("\nChoose rest spot (1-3): ", (choice) => {
-        const locationChoice = parseInt(choice.trim());
-
-        if( locationChoice >= 1 && locationChoice <= 3){
-            rest(locationChoice);
-        } else {
-            console.log("❗ Invalid rest spot selected!");
-            gameLoop();
-        }
-
-        // gameLoop();
-    });
-}
-
-
-
-function displayStats(){
-    console.log(
-`\n=== STRAY CAT SURVIVAL ===
-    Health: ${playerStats.health}/${playerStats.maxHealth}
-    Stamina: ${playerStats.stamina}/${playerStats.maxStamina}
-    Food: ${playerStats.food}
-    Nesting Materials (cardboard, rags): ${playerStats.nestingMaterials}
-    Human Trust: ${playerStats.humanTrust}
-    Cat Allies: ${playerStats.catAllies}
-==========================`
-    );
-}
-
-
+// Primary actions
 function scavenge(){
     if( playerStats.stamina > 0 ){
         adjustStamina(-1);
@@ -184,6 +166,41 @@ function scavenge(){
     } else {
         console.log("😿 Too tired to scavenge...");
     }
+}
+
+function eatFood(){
+    if(playerStats.food > 0){
+        if(playerStats.health < playerStats.maxHealth){
+            adjustFood(-1);
+            adjustHealth(0.5);
+            console.log("🍖 Nom nom... Restored 0.5 Health!");
+        } else {
+            console.log("Not hungry... let's save our food for later.");
+        }
+    } else {
+        console.log("😾 We don't have any food...");
+    }
+}
+
+// Resting paths
+function promptRestMenu() {
+    console.log("\nWhere should we rest?");
+    console.log("1. On the street (Dangerous, free, chance of extra stamina)");
+    console.log("2. In an alleyway (Medium risk, optional materials cost)");
+    console.log("3. Bakery rooftop (Safe, costs 1 Stamina, extra health)");
+
+    rl.question("\nChoose rest spot (1-3): ", (choice) => {
+        const locationChoice = parseInt(choice.trim());
+
+        if( locationChoice >= 1 && locationChoice <= 3){
+            rest(locationChoice);
+        } else {
+            console.log("❗ Invalid rest spot selected!");
+            gameLoop();
+        }
+
+        // gameLoop();
+    });
 }
 
 function rest(locationChoice){
@@ -306,6 +323,31 @@ function rest(locationChoice){
     }
 }
 
+function unprotectedAlleyRest(){
+    let catAttack = Math.random() < 0.4;
+    let dogAttack = Math.random() < 0.3;
+
+    if(catAttack) {
+        adjustHealth(-1);
+        adjustFood(-1);
+        console.log("😼 A rival cat attacks us and steals our food.");
+    }
+
+    if(!catAttack && !dogAttack){
+        adjustStamina(2);
+        adjustHealth(1);
+        console.log("😸 We had a peaceful rest!");
+    }
+
+    if(dogAttack) {
+        handleDogPrompt();
+    } else {
+        gameLoop();
+    }
+}
+
+
+// Encounters
 function handleDogPrompt(){
     // IF food > 0:
     if( playerStats.food > 0 ){
@@ -365,6 +407,7 @@ function attemptDogScare(){
         standardDogAttack();
     }
 }
+
 function standardDogAttack(){
     adjustHealth(-2);
     console.log("\n************");
@@ -374,20 +417,8 @@ function standardDogAttack(){
     gameLoop();
 }
 
-function eatFood(){
-    if(playerStats.food > 0){
-        if(playerStats.health < playerStats.maxHealth){
-            adjustFood(-1);
-            adjustHealth(0.5);
-            console.log("🍖 Nom nom... Restored 0.5 Health!");
-        } else {
-            console.log("Not hungry... let's save our food for later.");
-        }
-    } else {
-        console.log("😾 We don't have any food...");
-    }
-}
 
+// Stat mutators
 function adjustFood(x){
     playerStats.food += x;
     playerStats.food = Math.max(playerStats.food, 0);
@@ -420,35 +451,7 @@ function adjustCatAllies(x){
     playerStats.catAllies = Math.max(playerStats.catAllies, 0);
 }
 
-function unprotectedAlleyRest(){
-    let catAttack = Math.random() < 0.4;
-    let dogAttack = Math.random() < 0.3;
-
-    if(catAttack) {
-        adjustHealth(-1);
-        adjustFood(-1);
-        console.log("😼 A rival cat attacks us and steals our food.");
-    }
-
-    if(!catAttack && !dogAttack){
-        adjustStamina(2);
-        adjustHealth(1);
-        console.log("😸 We had a peaceful rest!");
-    }
-
-    if(dogAttack) {
-        handleDogPrompt();
-    } else {
-        gameLoop();
-    }
-}
-
-// displayStats();
-// rest(1);
-// // adjustStamina(-1);
-// // adjustHealth(-2);
-// displayStats();
-
+// Game init
 start();
 printIntro();
 gameLoop();
