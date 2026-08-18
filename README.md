@@ -29,7 +29,7 @@ mindmap
           With Materials : Safer / Restores Stats
           Unprotected : Risk of Rival Cat or Dog Event
         Bakery Rooftop : Safe
-          Costs 2 Stamina
+          Costs 1 Stamina
           Restores 2 Health
     Dog Event Handler
       Toss Food : Costs 1 Food / Escape

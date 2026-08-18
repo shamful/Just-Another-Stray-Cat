@@ -311,13 +311,13 @@ function rest(locationChoice){
         }
 
     } else if (locationChoice === 3) { // rooftop
-        if(playerStats.stamina >= 2){
+        if(playerStats.stamina >= 1){
             console.log("Feeling for a scenic view and some piece, we climb our way up to the rooftop of the local bakery.");
-            console.log("📐 Lose 2 Stamina. Gain 2 Health.");
-            adjustStamina(-2);
+            console.log("📐 Lose 1 Stamina. Gain 2 Health.");
+            adjustStamina(-1);
             adjustHealth(2);
         } else {
-            console.log("😫 We don't have enough stamina to climb up.");
+            console.log("😫 We are exhausted (0 stamina) and can't make the climb.");
         }
         gameLoop();
     }
