@@ -76,7 +76,7 @@ function gameLoop(){
     
     if ( playerStats.catAllies >= 3 ){
         displayStats();
-        console.log("\n👑 VICTORY! You scared off enough dogs to earn the respect of the city strays. You rule the streets of Lisboa!");
+        console.log("\n👑 VICTORY! You scared off enough dogs to earn the respect of the city strays. You rule the streets!");
         rl.close();
         return;
     }

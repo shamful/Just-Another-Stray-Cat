@@ -1,4 +1,10 @@
-``` mermaid
+# 🐾 Just Another Street Cat
+
+A text-based CLI survival adventure built with Node.js. Navigate the inner city, manage your resources, and survive long enough to rule the streets or find a home.
+
+## Game Overview & Systems
+
+```mermaid
 mindmap
   root((Just Another Street Cat))
     Win Conditions
@@ -32,4 +38,10 @@ mindmap
         High Health/Stamina : 30% Success
         Success : +1 Cat Ally
         Failure : -2 Health
+```
+
+## How to Run
+
+```bash
+node index.js
 ```
