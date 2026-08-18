@@ -15,8 +15,8 @@ const playerStats =
     "maxStamina": 5,
     "food": 1,
     "nestingMaterials": 0,
-    "humanTrust": 0,
-    "pettedCount": 0, // when this reaches 3 humanTrust increases by 1
+    "humanBond": 0,
+    "pettedCount": 0, // when this reaches 3 increases humanBond by 1
     "catAllies": 0 // if dog attack won, this increases by 1
 };
 
@@ -74,7 +74,7 @@ function displayStats(){
     Stamina: ${playerStats.stamina}/${playerStats.maxStamina}
     Food: ${playerStats.food}
     Nesting Materials (cardboard, rags): ${playerStats.nestingMaterials}
-    Human Trust: ${playerStats.humanTrust}
+    Human Bond: ${playerStats.humanBond}
     Cat Allies: ${playerStats.catAllies}
 ==========================`
     );
@@ -98,7 +98,7 @@ function gameLoop(){
         return;
     }
 
-    if (playerStats.humanTrust >= 3) {
+    if (playerStats.humanBond >= 3) {
         displayStats();
         console.log("\n🏠 VICTORY! A kind human took you off the streets. You're an indoor cat now!");
         rl.close();
@@ -172,8 +172,8 @@ function eatFood(){
     if(playerStats.food > 0){
         if(playerStats.health < playerStats.maxHealth){
             adjustFood(-1);
-            adjustHealth(0.5);
-            console.log("🍖 Nom nom... Restored 0.5 Health!");
+            adjustHealth(1);
+            console.log("🍖 Nom nom... Restored 1 Health!");
         } else {
             console.log("Not hungry... let's save our food for later.");
         }
@@ -229,22 +229,22 @@ function rest(locationChoice){
         if(humanPetting) {
             adjustHealth(1);
             adjustStamina(1);
-            console.log("************");
+            console.log("\n************");
             console.log("A kind human petted us... Rrrr-gurr-gurr...");
             console.log("📐 Gained 1 Health and 1 Stamina.");
-            console.log("\n************");
+            console.log("************");
 
             // Add 1 to petted count and if petted 3 times increase human rust and reset petted count to 0
             playerStats.pettedCount += 1;
             if( playerStats.pettedCount === 3){
-                playerStats.humanTrust += 1;
+                adjustHumanBond(1);
                 playerStats.pettedCount = 0;
                 console.log("\n************");
                 console.log("🤙🏽 We've been petted three times!");
-                console.log("📐 Gained 1 Human Trust");
+                console.log("📐 Gained 1 Human Bond");
                 console.log("************");
             } else {
-                console.log(`ℹ️ ${playerStats.pettedCount}/3 pettings needed for Trust`);
+                console.log(`ℹ️ ${playerStats.pettedCount}/3 pettings needed for human bond`);
             }
         }
 
@@ -279,18 +279,15 @@ function rest(locationChoice){
                         if(catAttack) {
                             adjustHealth(-1);
                             adjustFood(-1);
-                            adjustNestingMaterials(-1);
                             console.log("\n************");
-                            console.log("😼 A rival cat attacks us, steals our food and nesting materials, pees in our spot and walks off!");
-                            console.log("📐 Lost 1 Health, Food, and Nesting Materials.");
+                            console.log("😼 A rival cat attacks us, steals our food, pees in our spot, and walks off!");
+                            console.log("📐 Lost 1 Health and 1 Food. Plus now we smell like pee...");
                             console.log("************");
-                            
                         } else {
                             adjustStamina(2);
                             adjustHealth(1);
                             console.log("\nWe had a peaceful rest!");
                             console.log("📐 Gained 2 Stamina and 1 Health.");
-                            
                         }
                         gameLoop();
                         break;
@@ -312,7 +309,7 @@ function rest(locationChoice){
 
     } else if (locationChoice === 3) { // rooftop
         if(playerStats.stamina >= 1){
-            console.log("Feeling for a scenic view and some piece, we climb our way up to the rooftop of the local bakery.");
+            console.log("Feeling for a scenic view and some peace, we climb our way up to the rooftop of the local bakery.");
             console.log("📐 Lose 1 Stamina. Gain 2 Health.");
             adjustStamina(-1);
             adjustHealth(2);
@@ -330,13 +327,18 @@ function unprotectedAlleyRest(){
     if(catAttack) {
         adjustHealth(-1);
         adjustFood(-1);
-        console.log("😼 A rival cat attacks us and steals our food.");
+        console.log("\n************");
+        console.log("😼 A rival cat attacks us, steals our food, pees in our spot, and walks off!");
+        console.log("📐 Lost 1 Health and 1 Food. Plus now we smell like pee...");
+        console.log("************");
     }
 
     if(!catAttack && !dogAttack){
         adjustStamina(2);
         adjustHealth(1);
+        console.log("\n************");
         console.log("😸 We had a peaceful rest!");
+        console.log("************");
     }
 
     if(dogAttack) {
@@ -353,14 +355,14 @@ function handleDogPrompt(){
     if( playerStats.food > 0 ){
         // game prompts: "Toss 1 Food to distract the dog? (Y/N)"
         console.log("\nA dog approaches growling at us. This could end badly...");
-        rl.question("Toss 1 Food to distract the dog❔ (Y/N)", (choice) => {
+        rl.question("Toss 1 Food to distract the dog❔ (Y/N): ", (choice) => {
             // IF Y: "You toss some food to the dog and make a quick escape"
             if( choice.trim().toUpperCase() === "Y"){
                 adjustFood(-1);
                 console.log("\n************");
                 console.log("You toss some food at the dog and make a quick escape.");
                 console.log("Gave up 1 Food.");
-                if(playerStats.food === 0) console.log("‼️ That was our last bit of grub. We need to find more food!");
+                if(playerStats.food === 0) console.log("‼️ That was our last bit of food. We need to find more food!");
                 console.log("************");
                 gameLoop();
             } else {
@@ -382,8 +384,9 @@ function attemptDogScare(){
             adjustCatAllies(1);
             console.log("\n************");
             console.log("\n***ADRENALINE SURGE***");
-            console.log("In our disorientated moment of desparation, something takes over and we channel OUR inner lion. Hissing menacingly, we arch our back and puff our fur, somehow causing the dog to piss itself and run away wimpering.");
-            console.log("Holy shit! That actually worked... we scared the dog away! Gain 1 Cat Ally.");
+            console.log("😾 In desperation, something takes over and we channel OUR inner lion. Hissing with rage, foaming at the mouth, we arch our back and puff our fur, somehow causing the dog to piss itself and run away whimpering!");
+            console.log("Holy shit! That actually worked...");
+            console.log("📐 Gain 1 Cat Ally.");
             console.log("************");
             gameLoop();
         } else {
@@ -396,8 +399,9 @@ function attemptDogScare(){
         if( scareDogAway ){
             adjustCatAllies(1);
             console.log("\n************");
-            console.log("We hiss menacingly, arch our back and puff our fur, scaring the dog away.");
+            console.log("😾 You puff up your fur and hiss fiercely! The dog backs down!");
             console.log("Can't believe that worked. That ain't no dog!");
+            console.log("📐 Gain 1 Cat Ally.");
             console.log("************");
             gameLoop();
         } else {
@@ -441,9 +445,9 @@ function adjustStamina(x){
     playerStats.stamina = Math.max(playerStats.stamina, 0);
 }
 
-function adjustHumanTrust(x){
-    playerStats.humanTrust += x;
-    playerStats.humanTrust = Math.max(playerStats.humanTrust, 0);
+function adjustHumanBond(x){
+    playerStats.humanBond += x;
+    playerStats.humanBond = Math.max(playerStats.humanBond, 0);
 }
 
 function adjustCatAllies(x){

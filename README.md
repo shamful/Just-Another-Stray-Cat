@@ -9,7 +9,7 @@ mindmap
   root((Just Another Street Cat))
     Win Conditions
       Rule the Streets : 3 Cat Allies
-      Indoor Cat : 3 Human Trust
+      Indoor Cat : 3 Human Bonds
     Loss Condition
       Game Over : 0 Health
     Main Actions
@@ -18,7 +18,7 @@ mindmap
         Gain Nesting Materials : 50%
         Costs 1 Stamina
       Eat
-        Restore 0.5 Health
+        Restore 1 Health
         Costs 1 Food
       Rest Choices
         Street : High Risk / High Reward
