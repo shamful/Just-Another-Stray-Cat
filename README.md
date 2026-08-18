@@ -19,18 +19,18 @@ mindmap
         Costs 1 Stamina
       Eat
         Restore 1 Health
-        Costs 1 Food
+        Costs 1 Food & Resets Hunger
       Rest Choices
         Street : High Risk / High Reward
-          Human Pet : +1 Health & Stamina
+          Human Pet : +1 Health & Stamina / 3 Pets = +1 Human Bond
           Kid Kick : -1 Health
           Dog Attack : Triggers Dog Event
         Alleyway : Medium Risk
           With Materials : Safer / Restores Stats
           Unprotected : Risk of Rival Cat or Dog Event
         Bakery Rooftop : Safe
-          Costs 1 Stamina
-          Restores 2 Health
+          Costs 2 Stamina
+          Restores 1 Health
     Dog Event Handler
       Toss Food : Costs 1 Food / Escape
       Attempt Scare

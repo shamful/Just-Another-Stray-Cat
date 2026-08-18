@@ -9,16 +9,35 @@ const rl = readline.createInterface({
 // Display and setup
 const playerStats = 
 {
+    "turnsSinceEaten": 0,
     "health": 3,
     "maxHealth": 8,
     "stamina": 3,
     "maxStamina": 5,
     "food": 1,
     "nestingMaterials": 0,
-    "humanBond": 0,
     "pettedCount": 0, // when this reaches 3 increases humanBond by 1
+    "humanBond": 0,
     "catAllies": 0 // if dog attack won, this increases by 1
 };
+
+function advanceTurn(){
+    playerStats.turnsSinceEaten += 1;
+
+    if( playerStats.turnsSinceEaten >= 5 ){
+        playerStats.turnsSinceEaten = 0;
+        console.log("\n==============");
+        if( playerStats.food > 0 ){
+            adjustFood(-1);
+            console.log("🥣 5 turns passed. You ate 1 food to stay nourished.");
+        } else {
+            adjustHealth(-1);
+            console.log("😩 You haven't eaten in 5 turns and have no food! Lost 1 Health from hunger.");
+        }
+        console.log("==============");
+
+    }
+}
 
 function start(){
     const titleScreen = `
@@ -74,6 +93,7 @@ function displayStats(){
     Stamina: ${playerStats.stamina}/${playerStats.maxStamina}
     Food: ${playerStats.food}
     Nesting Materials (cardboard, rags): ${playerStats.nestingMaterials}
+    Human Petted: ${playerStats.pettedCount}
     Human Bond: ${playerStats.humanBond}
     Cat Allies: ${playerStats.catAllies}
 ==========================`
@@ -163,17 +183,21 @@ function scavenge(){
         if (!foundFood && !foundNestingMaterials) {
             console.log("😾 Found nothing...");
         }
+        advanceTurn();
     } else {
         console.log("😿 Too tired to scavenge...");
     }
 }
 
 function eatFood(){
+    
     if(playerStats.food > 0){
         if(playerStats.health < playerStats.maxHealth){
             adjustFood(-1);
             adjustHealth(1);
             console.log("🍖 Nom nom... Restored 1 Health!");
+            playerStats.turnsSinceEaten = 0;
+            advanceTurn();
         } else {
             console.log("Not hungry... let's save our food for later.");
         }
@@ -185,9 +209,9 @@ function eatFood(){
 // Resting paths
 function promptRestMenu() {
     console.log("\nWhere should we rest?");
-    console.log("1. On the street (Dangerous, free, chance of extra stamina)");
+    console.log("1. On the street (Dangerous, free, chance of extra stamina and health)");
     console.log("2. In an alleyway (Medium risk, optional materials cost)");
-    console.log("3. Bakery rooftop (Safe, costs 1 Stamina, extra health)");
+    console.log("3. Bakery rooftop (Safe, costs 2 Stamina, +1 health)");
 
     rl.question("\nChoose rest spot (1-3): ", (choice) => {
         const locationChoice = parseInt(choice.trim());
@@ -232,20 +256,22 @@ function rest(locationChoice){
             console.log("\n************");
             console.log("A kind human petted us... Rrrr-gurr-gurr...");
             console.log("📐 Gained 1 Health and 1 Stamina.");
-            console.log("************");
+            
 
-            // Add 1 to petted count and if petted 3 times increase human rust and reset petted count to 0
+            // Add 1 to petted count and if petted 3 times increase human bond and reset petted count to 0
             playerStats.pettedCount += 1;
             if( playerStats.pettedCount === 3){
                 adjustHumanBond(1);
                 playerStats.pettedCount = 0;
-                console.log("\n************");
+                console.log("\n------------");
                 console.log("🤙🏽 We've been petted three times!");
                 console.log("📐 Gained 1 Human Bond");
-                console.log("************");
+                console.log("------------");
             } else {
-                console.log(`ℹ️ ${playerStats.pettedCount}/3 pettings needed for human bond`);
+                let needed = 3 - playerStats.pettedCount;
+                console.log(`ℹ️  ${needed} more petting${needed > 1 ? 's' : ''} needed for human bond.`);
             }
+            console.log("************");
         }
 
         if(!dogAttack && !humanAttack){
@@ -259,6 +285,7 @@ function rest(locationChoice){
         if(dogAttack){
             handleDogPrompt();
         } else {
+            advanceTurn();
             gameLoop();
         }
        
@@ -289,6 +316,7 @@ function rest(locationChoice){
                             console.log("\nWe had a peaceful rest!");
                             console.log("📐 Gained 2 Stamina and 1 Health.");
                         }
+                        advanceTurn();
                         gameLoop();
                         break;
 
@@ -308,11 +336,12 @@ function rest(locationChoice){
         }
 
     } else if (locationChoice === 3) { // rooftop
-        if(playerStats.stamina >= 1){
+        if(playerStats.stamina >= 2){
+            adjustStamina(-2);
+            adjustHealth(1);
             console.log("Feeling for a scenic view and some peace, we climb our way up to the rooftop of the local bakery.");
-            console.log("📐 Lose 1 Stamina. Gain 2 Health.");
-            adjustStamina(-1);
-            adjustHealth(2);
+            console.log("📐 Lose 2 Stamina. Gain 1 Health.");
+            advanceTurn();
         } else {
             console.log("😫 We are exhausted (0 stamina) and can't make the climb.");
         }
@@ -334,16 +363,17 @@ function unprotectedAlleyRest(){
     }
 
     if(!catAttack && !dogAttack){
-        adjustStamina(2);
-        adjustHealth(1);
+        adjustStamina(1);
         console.log("\n************");
         console.log("😸 We had a peaceful rest!");
+        console.log("📐 Gain 1 Stamina.");
         console.log("************");
     }
 
     if(dogAttack) {
         handleDogPrompt();
     } else {
+        advanceTurn();
         gameLoop();
     }
 }
@@ -364,6 +394,7 @@ function handleDogPrompt(){
                 console.log("Gave up 1 Food.");
                 if(playerStats.food === 0) console.log("‼️ That was our last bit of food. We need to find more food!");
                 console.log("************");
+                advanceTurn();
                 gameLoop();
             } else {
                 attemptDogScare();
@@ -388,6 +419,7 @@ function attemptDogScare(){
             console.log("Holy shit! That actually worked...");
             console.log("📐 Gain 1 Cat Ally.");
             console.log("************");
+            advanceTurn();
             gameLoop();
         } else {
             standardDogAttack();
@@ -403,6 +435,7 @@ function attemptDogScare(){
             console.log("Can't believe that worked. That ain't no dog!");
             console.log("📐 Gain 1 Cat Ally.");
             console.log("************");
+            advanceTurn();
             gameLoop();
         } else {
             standardDogAttack();
@@ -418,6 +451,7 @@ function standardDogAttack(){
     console.log("🐕 A stray dog bit us!");
     console.log("📐 Lost 2 Health.");
     console.log("************");
+    advanceTurn();
     gameLoop();
 }
 
