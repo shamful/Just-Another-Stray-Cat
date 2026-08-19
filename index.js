@@ -9,6 +9,7 @@ const rl = readline.createInterface({
 // Display and setup
 const playerStats = 
 {
+    "turn": 0,
     "turnsSinceEaten": 0,
     "health": 3,
     "maxHealth": 8,
@@ -21,7 +22,29 @@ const playerStats =
     "catAllies": 0 // if dog attack won, this increases by 1
 };
 
+const historyGameplay = [];
+let currentTurnLog = [];
+
+// {
+//   turn: 5,
+//   action: "REST_ALLEY",
+//   subChoice: { useNesting: true },
+//   eventTriggered: "RIVAL_CAT_ATTACK",
+//   statDeltas: { health: -1, food: -1 },
+//   endingStats: { health: 4, stamina: 1, food: 0 }
+// }
+
+function recordTurn(log){
+    let turnDetails = {
+        "playerStats": { ...playerStats }, // frozen snapshot of playerStats
+        "log": log // e.g. [ "Attacked by cat", "Bit by dog", "5 turns passed. You ate 1 food to stay nourished."]
+    }
+
+    historyGameplay.push(turnDetails);
+}
+
 function advanceTurn(){
+    playerStats.turn +=1;
     playerStats.turnsSinceEaten += 1;
 
     if( playerStats.turnsSinceEaten >= 5 ){
@@ -29,14 +52,22 @@ function advanceTurn(){
         console.log("\n==============");
         if( playerStats.food > 0 ){
             adjustFood(-1);
-            console.log("🥣 5 turns passed. You ate 1 food to stay nourished.");
+            log("Outcome", "🥣 5 turns passed. You ate 1 food to stay nourished.");
         } else {
             adjustHealth(-1);
-            console.log("😩 You haven't eaten in 5 turns and have no food! Lost 1 Health from hunger.");
+            log("Outcome", "😩 You haven't eaten in 5 turns and have no food! Lost 1 Health from hunger.");
         }
         console.log("==============");
-
     }
+
+    recordTurn([...currentTurnLog]);
+    currentTurnLog = [];
+}
+
+// Log events loggin helpers
+function log(type, msg){
+    console.log(msg);
+    currentTurnLog.push(type + ": " + msg);
 }
 
 function start(){
@@ -88,17 +119,19 @@ a warm spot to rest before the river chill sets in.
 
 function displayStats(){
     console.log(
-`\n=== STRAY CAT SURVIVAL ===
-    Health: ${playerStats.health}/${playerStats.maxHealth}
-    Stamina: ${playerStats.stamina}/${playerStats.maxStamina}
-    Food: ${playerStats.food}
-    Nesting Materials (cardboard, rags): ${playerStats.nestingMaterials}
-    Human Petted: ${playerStats.pettedCount}
-    Human Bond: ${playerStats.humanBond}
-    Cat Allies: ${playerStats.catAllies}
+`\n======= CAT STATS =======
+  Turn: ${playerStats.turn}
+  Health: ${playerStats.health}/${playerStats.maxHealth}
+  Stamina: ${playerStats.stamina}/${playerStats.maxStamina}
+  Food: ${playerStats.food}
+  Nesting Materials (cardboard, rags): ${playerStats.nestingMaterials}
+  Human Petted: ${playerStats.pettedCount}
+  Human Bond: ${playerStats.humanBond}
+  Cat Allies: ${playerStats.catAllies}
 ==========================`
     );
 }
+
 
 
 // Main game loop
@@ -106,21 +139,24 @@ function gameLoop(){
     // 1. Check if the cat is dead before starting the turn
     if (playerStats.health <= 0) {
         displayStats();
-        console.log("\n💀 Game Over! Our stray cat couldn't survive the city... 🎻");
+        log("Outcome", "\n💀 Game Over! Our stray cat couldn't survive the city... 🎻");
+        recordTurn([...currentTurnLog]);
         rl.close();
         return;
     }
     
     if ( playerStats.catAllies >= 3 ){
         displayStats();
-        console.log("\n👑 VICTORY! You scared off enough dogs to earn the respect of the city strays. You rule the streets!");
+        log("Outcome", "\n👑 VICTORY! You scared off enough dogs to earn the respect of the city strays. You rule the streets!");
+        recordTurn([...currentTurnLog]);
         rl.close();
         return;
     }
 
     if (playerStats.humanBond >= 3) {
         displayStats();
-        console.log("\n🏠 VICTORY! A kind human took you off the streets. You're an indoor cat now!");
+        log("Outcome", "\n🏠 VICTORY! A kind human took you off the streets. You're an indoor cat now!");
+        recordTurn([...currentTurnLog]);
         rl.close();
         return;
     }
@@ -168,20 +204,23 @@ function gameLoop(){
 
 // Primary actions
 function scavenge(){
+    
     if( playerStats.stamina > 0 ){
         adjustStamina(-1);
+        log("Action", "🔎 Scavenge for food and materials.");
+
         let foundFood = Math.random() < 0.5;
         let foundNestingMaterials = Math.random() < 0.5;
         if( foundFood ){
             adjustFood(1);
-            console.log("🐟 Found food!");
+            log("Outcome", "🐟 Found food!");
         }
         if ( foundNestingMaterials ) {
             adjustNestingMaterials(1);
-            console.log("📦 Found nesting materials!");
+            log("Outcome", "📦 Found nesting materials!");
         }
         if (!foundFood && !foundNestingMaterials) {
-            console.log("😾 Found nothing...");
+            log("Outcome", "😾 Found nothing...");
         }
         advanceTurn();
     } else {
@@ -195,7 +234,8 @@ function eatFood(){
         if(playerStats.health < playerStats.maxHealth){
             adjustFood(-1);
             adjustHealth(1);
-            console.log("🍖 Nom nom... Restored 1 Health!");
+            log("Action", "🍖 Nom nom... ate 1 food.");
+            log("Outcome", "Restored 1 Health!");
             playerStats.turnsSinceEaten = 0;
             advanceTurn();
         } else {
@@ -235,7 +275,7 @@ function rest(locationChoice){
     let dogAttack, catAttack, humanAttack, humanPetting;
 
     if(locationChoice === 1){ // street
-        console.log("Feeling lucky, we decide to sleep in the street.");
+        log("Action", "Feeling lucky, we decide to sleep in the street.");
         
         // Roll dice for positive and negative rest interruptions
         humanAttack = Math.random() < 0.3;
@@ -245,8 +285,8 @@ function rest(locationChoice){
         if(humanAttack){
             adjustHealth(-1);
             console.log("\n************");
-            console.log("🥾 A mean kid kicked us!");
-            console.log("📐 Lost 1 Health.");
+            log("Outcome", "🥾 A mean kid kicked us!");
+            log("Outcome", "📐 Lost 1 Health.");
             console.log("************");
         }
         
@@ -254,8 +294,8 @@ function rest(locationChoice){
             adjustHealth(1);
             adjustStamina(1);
             console.log("\n************");
-            console.log("A kind human petted us... Rrrr-gurr-gurr...");
-            console.log("📐 Gained 1 Health and 1 Stamina.");
+            log("Outcome", "A kind human petted us... Rrrr-gurr-gurr...");
+            log("Outcome", "📐 Gained 1 Health and 1 Stamina.");
             
 
             // Add 1 to petted count and if petted 3 times increase human bond and reset petted count to 0
@@ -264,12 +304,12 @@ function rest(locationChoice){
                 adjustHumanBond(1);
                 playerStats.pettedCount = 0;
                 console.log("\n------------");
-                console.log("🤙🏽 We've been petted three times!");
-                console.log("📐 Gained 1 Human Bond");
+                log("Outcome", "🤙🏽 We've been petted three times!");
+                log("Outcome", "📐 Gained 1 Human Bond");
                 console.log("------------");
             } else {
                 let needed = 3 - playerStats.pettedCount;
-                console.log(`ℹ️  ${needed} more petting${needed > 1 ? 's' : ''} needed for human bond.`);
+                log("Outcome", `ℹ️  ${needed} more petting${needed > 1 ? 's' : ''} needed for human bond.`);
             }
             console.log("************");
         }
@@ -277,8 +317,8 @@ function rest(locationChoice){
         if(!dogAttack && !humanAttack){
             adjustStamina(1);
             console.log("\n************");
-            console.log("😹 Against all odds we rested peacefully.");
-            console.log("📐 Gained 1 Stamina.");
+            log("Outcome", "😹 Against all odds we rested peacefully.");
+            log("Outcome", "📐 Gained 1 Stamina.");
             console.log("************");
         }
 
@@ -301,20 +341,21 @@ function rest(locationChoice){
                 switch(choice.trim().toUpperCase()){
 
                     case 'Y':
+                        log("Action", "We use our nesting materials while resting in the alley.");
                         adjustNestingMaterials(-1);
                         catAttack = Math.random() < 0.2;
                         if(catAttack) {
                             adjustHealth(-1);
                             adjustFood(-1);
                             console.log("\n************");
-                            console.log("😼 A rival cat attacks us, steals our food, pees in our spot, and walks off!");
-                            console.log("📐 Lost 1 Health and 1 Food. Plus now we smell like pee...");
+                            log("Outcome", "😼 A rival cat attacks us, steals our food, pees in our spot, and walks off!");
+                            log("Outcome", "📐 Lost 1 Health and 1 Food. Plus now we smell like pee...");
                             console.log("************");
                         } else {
                             adjustStamina(2);
                             adjustHealth(1);
-                            console.log("\nWe had a peaceful rest!");
-                            console.log("📐 Gained 2 Stamina and 1 Health.");
+                            log("Outcome", "\nWe had a peaceful rest!");
+                            log("Outcome", "📐 Gained 2 Stamina and 1 Health.");
                         }
                         advanceTurn();
                         gameLoop();
@@ -339,8 +380,8 @@ function rest(locationChoice){
         if(playerStats.stamina >= 2){
             adjustStamina(-2);
             adjustHealth(1);
-            console.log("Feeling for a scenic view and some peace, we climb our way up to the rooftop of the local bakery.");
-            console.log("📐 Lose 2 Stamina. Gain 1 Health.");
+            log("Action", "Feeling for a scenic view and some peace, we climb our way up to the rooftop of the local bakery.");
+            log("Outcome", "📐 Lose 2 Stamina. Gain 1 Health.");
             advanceTurn();
         } else {
             console.log("😫 We are exhausted (0 stamina) and can't make the climb.");
@@ -357,16 +398,16 @@ function unprotectedAlleyRest(){
         adjustHealth(-1);
         adjustFood(-1);
         console.log("\n************");
-        console.log("😼 A rival cat attacks us, steals our food, pees in our spot, and walks off!");
-        console.log("📐 Lost 1 Health and 1 Food. Plus now we smell like pee...");
+        log("Outcome", "😼 A rival cat attacks us, steals our food, pees in our spot, and walks off!");
+        log("Outcome", "📐 Lost 1 Health and 1 Food. Plus now we smell like pee...");
         console.log("************");
     }
 
     if(!catAttack && !dogAttack){
         adjustStamina(1);
         console.log("\n************");
-        console.log("😸 We had a peaceful rest!");
-        console.log("📐 Gain 1 Stamina.");
+        log("Outcome", "😸 We had a peaceful rest!");
+        log("Outcome", "📐 Gain 1 Stamina.");
         console.log("************");
     }
 
@@ -385,13 +426,13 @@ function handleDogPrompt(){
     if( playerStats.food > 0 ){
         // game prompts: "Toss 1 Food to distract the dog? (Y/N)"
         console.log("\nA dog approaches growling at us. This could end badly...");
-        rl.question("Toss 1 Food to distract the dog❔ (Y/N): ", (choice) => {
+        rl.question("\nToss 1 Food to distract the dog❔ (Y/N): ", (choice) => {
             // IF Y: "You toss some food to the dog and make a quick escape"
             if( choice.trim().toUpperCase() === "Y"){
                 adjustFood(-1);
                 console.log("\n************");
-                console.log("You toss some food at the dog and make a quick escape.");
-                console.log("Gave up 1 Food.");
+                log("Action", "You toss some food at the dog and make a quick escape.");
+                log("Outcome", "Lost 1 Food, but at least we're safe form the dog.");
                 if(playerStats.food === 0) console.log("‼️ That was our last bit of food. We need to find more food!");
                 console.log("************");
                 advanceTurn();
@@ -413,11 +454,9 @@ function attemptDogScare(){
         let scareDogAway = Math.random() < 0.2;
         if( scareDogAway ){
             adjustCatAllies(1);
-            console.log("\n************");
-            console.log("\n***ADRENALINE SURGE***");
-            console.log("😾 In desperation, something takes over and we channel OUR inner lion. Hissing with rage, foaming at the mouth, we arch our back and puff our fur, somehow causing the dog to piss itself and run away whimpering!");
-            console.log("Holy shit! That actually worked...");
-            console.log("📐 Gain 1 Cat Ally.");
+            log("Outcome", "\n***ADRENALINE SURGE***"
+            +"\n🦁 In desperation, something takes over and we channel OUR inner lion. Hissing with rage, foaming at the mouth, we arch our back and puff our fur, somehow causing the dog to piss itself and run away whimpering!");
+            log("Outcome", "📐 Gain 1 Cat Ally.");
             console.log("************");
             advanceTurn();
             gameLoop();
@@ -431,7 +470,7 @@ function attemptDogScare(){
         if( scareDogAway ){
             adjustCatAllies(1);
             console.log("\n************");
-            console.log("😾 You puff up your fur and hiss fiercely! The dog backs down!");
+            log("Outcome", "😾 You puff up your fur and hiss fiercely! The dog backs down!");
             console.log("Can't believe that worked. That ain't no dog!");
             console.log("📐 Gain 1 Cat Ally.");
             console.log("************");
@@ -448,8 +487,8 @@ function attemptDogScare(){
 function standardDogAttack(){
     adjustHealth(-2);
     console.log("\n************");
-    console.log("🐕 A stray dog bit us!");
-    console.log("📐 Lost 2 Health.");
+    log("Outcome", "🐕 A stray dog bit us!");
+    log("Outcome", "📐 Lost 2 Health.");
     console.log("************");
     advanceTurn();
     gameLoop();
