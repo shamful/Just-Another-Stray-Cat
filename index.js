@@ -167,12 +167,13 @@ function gameLoop(){
     // 3. Print main menu options
     console.log("\nWhat should we do?");
     console.log("1. Scavenge");
-    console.log("2. Rest");
-    console.log("3. Eat");
+    console.log("2. Walk the Street");
+    console.log("3. Rest");
+    console.log("4. Eat");
     console.log("0. Quit Game");
 
     // 4. Prompt the player for input
-    rl.question("\nEnter your choice (0-3): ", (answer) => {
+    rl.question("\nEnter your choice (0-4): ", (answer) => {
 
         switch(answer.trim()){
             case '0':
@@ -186,16 +187,20 @@ function gameLoop(){
                 break;
 
             case '2':
+                walkTheStreet();
+                break;
+
+            case '3':
                 promptRestMenu(); // Open rest menu
                 break;
             
-            case '3':
+            case '4':
                 eatFood();
                 gameLoop();
                 break;
 
             default:
-                console.log("❗ Invalid choice! Pick 1, 2, 3 or 0.");
+                console.log("❗ Invalid choice! Pick 1, 2, 3, 4 or 0.");
                 gameLoop();
                 break;
         };
@@ -228,59 +233,14 @@ function scavenge(){
     }
 }
 
-function eatFood(){
-    
-    if(playerStats.food > 0){
-        if(playerStats.health < playerStats.maxHealth){
-            adjustFood(-1);
-            adjustHealth(1);
-            log("Action", "🍖 Nom nom... ate 1 food.");
-            log("Outcome", "Restored 1 Health!");
-            playerStats.turnsSinceEaten = 0;
-            advanceTurn();
-        } else {
-            console.log("Not hungry... let's save our food for later.");
-        }
-    } else {
-        console.log("😾 We don't have any food...");
-    }
-}
-
-// Resting paths
-function promptRestMenu() {
-    console.log("\nWhere should we rest?");
-    console.log("1. On the street (Dangerous, free, chance of extra stamina and health)");
-    console.log("2. In an alleyway (Medium risk, optional materials cost)");
-    console.log("3. Bakery rooftop (Safe, costs 2 Stamina, +1 health)");
-
-    rl.question("\nChoose rest spot (1-3): ", (choice) => {
-        const locationChoice = parseInt(choice.trim());
-
-        if( locationChoice >= 1 && locationChoice <= 3){
-            rest(locationChoice);
-        } else {
-            console.log("❗ Invalid rest spot selected!");
-            gameLoop();
-        }
-
-        // gameLoop();
-    });
-}
-
-function rest(locationChoice){
-    // Dice roll for where resting will be
-    // 0 = street, 1 = alleyway box, 2 = rooftop
-    // let restLoc = Math.floor(Math.random() * 3);
-
-    let dogAttack, catAttack, humanAttack, humanPetting;
-
-    if(locationChoice === 1){ // street
-        log("Action", "Feeling lucky, we decide to sleep in the street.");
+function walkTheStreet(){
+    if( playerStats.stamina > 0){
+        log("Action", "Feeling lucky, we decide to walk the street.");
         
         // Roll dice for positive and negative rest interruptions
-        humanAttack = Math.random() < 0.3;
-        humanPetting = Math.random() < 0.3;
-        dogAttack = Math.random() < 0.4;
+        let humanAttack = Math.random() < 0.3;
+        let humanPetting = Math.random() < 0.3;
+        let dogAttack = Math.random() < 0.4;
         
         if(humanAttack){
             adjustHealth(-1);
@@ -317,7 +277,7 @@ function rest(locationChoice){
         if(!dogAttack && !humanAttack){
             adjustStamina(1);
             console.log("\n************");
-            log("Outcome", "😹 Against all odds we rested peacefully.");
+            log("Outcome", "😹 That was a nice walk, we needed that.");
             log("Outcome", "📐 Gained 1 Stamina.");
             console.log("************");
         }
@@ -328,10 +288,58 @@ function rest(locationChoice){
             advanceTurn();
             gameLoop();
         }
-       
-        // gameLoop();
+    } else {
+        console.log("😿 Too tired to walk the street...");
+    }
+}
 
-    } else if (locationChoice === 2) { // alleyway
+function eatFood(){
+    
+    if(playerStats.food > 0){
+        if(playerStats.health < playerStats.maxHealth){
+            adjustFood(-1);
+            adjustHealth(1);
+            log("Action", "🍖 Nom nom... ate 1 food.");
+            log("Outcome", "Restored 1 Health!");
+            playerStats.turnsSinceEaten = 0;
+            advanceTurn();
+        } else {
+            console.log("Not hungry... let's save our food for later.");
+        }
+    } else {
+        console.log("😾 We don't have any food...");
+    }
+}
+
+// Resting paths
+function promptRestMenu() {
+    console.log("\nWhere should we rest?");
+    console.log("1. In an alleyway (Medium risk, optional materials cost)");
+    console.log("2. Bakery rooftop (Safe, costs 2 Stamina, +1 health)");
+
+    rl.question("\nChoose rest spot (1-2): ", (choice) => {
+        const locationChoice = parseInt(choice.trim());
+
+        if( locationChoice >= 1 && locationChoice <= 2){
+            rest(locationChoice);
+        } else {
+            console.log("❗ Invalid rest spot selected!");
+            gameLoop();
+        }
+
+        // gameLoop();
+    });
+}
+
+function rest(locationChoice){
+    // Dice roll for where resting will be
+    // 0 = street, 1 = alleyway box, 2 = rooftop
+    // let restLoc = Math.floor(Math.random() * 3);
+
+    let dogAttack, catAttack, humanAttack, humanPetting;
+
+    
+    if (locationChoice === 1) { // alleyway
         console.log("We decide to sleep in the alley.");
 
         if(playerStats.nestingMaterials > 0) {
@@ -376,7 +384,7 @@ function rest(locationChoice){
             unprotectedAlleyRest();
         }
 
-    } else if (locationChoice === 3) { // rooftop
+    } else if (locationChoice === 2) { // rooftop
         if(playerStats.stamina >= 2){
             adjustStamina(-2);
             adjustHealth(1);
@@ -432,7 +440,7 @@ function handleDogPrompt(){
                 adjustFood(-1);
                 console.log("\n************");
                 log("Action", "You toss some food at the dog and make a quick escape.");
-                log("Outcome", "Lost 1 Food, but at least we're safe form the dog.");
+                log("Outcome", "Lost 1 Food, but at least we're safe from the dog.");
                 if(playerStats.food === 0) console.log("‼️ That was our last bit of food. We need to find more food!");
                 console.log("************");
                 advanceTurn();
