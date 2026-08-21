@@ -12,8 +12,9 @@ mindmap
     Player Stats
       Health : Max 8
       Stamina : Max 5
-      Inventory : Food & Materials
+      Inventory : Food & Nesting Materials
       Progress : Human Bonds & Cat Allies
+      Buffs : Friendly Vibe Countdown
     Win Conditions
       Rule the Streets : 3 Cat Allies
       Indoor Cat : 3 Human Bonds
@@ -21,95 +22,45 @@ mindmap
       Game Over : 0 Health
     Passive Systems
       Hunger Clock
-        Triggers every 5 turns
-        Auto-eats 1 Food
-        Loss 1 HP if out of food
+        Triggers every 7 turns
+        Consumes 0.5 Food
+        -1 HP if out of food
 ```
 
 ---
+## Core Systems & Mechanics
+**Hunger Clock**: Every 7 turns, you consume 0.5 food. If your food is empty, you lose 1 Health.
 
-## 🤔 Main Actions
+**Friendly Vibe**: Walking away peacefully after feeding a dog triggers a temporary countdown that boosts your chances of positive human interactions (petting).
 
-### Scavenge
-```mermaid
-graph TD
-    Scavenge[Scavenge Action] --> CheckStamina{Stamina > 0?}
-    
-    CheckStamina -->|No| NoStam[Failed: Too tired to scavenge]
-    CheckStamina -->|Yes| Roll[Costs 1 Stamina<br/>Roll 2x 50% Chance]
-    
-    Roll -->|25%| Both[Found Food + Nesting Materials]
-    Roll -->|25%| FoodOnly[Found Food Only]
-    Roll -->|25%| MatOnly[Found Nesting Materials Only]
-    Roll -->|25%| Nothing[Found Nothing]
-```
+## Primary Actions
+**Scavenge**: Costs 1 Stamina. Rolls independently for food and nesting materials.
 
-### 🥗 Eat
-```mermaid
-graph TD
-    Eat[Eat Action] --> CheckFood{Food > 0?}
-    
-    CheckFood -->|No| NoFood[Failed: No food in inventory]
-    CheckFood -->|Yes| CheckHP{Health < Max?}
-    
-    CheckHP -->|No| MaxHP[Failed: Already at max health]
-    CheckHP -->|Yes| Success[Costs 1 Food:<br/>+1 Health & Reset Hunger Clock]
-```
+**Walk the Street**: Costs 1 Stamina. Can result in a mean kid attack (-1 HP), a kind human petting (+1 HP, +1 Stamina, builds Human Bond), a peaceful walk, or trigger a stray dog encounter.
 
----
+**Eat**: Consumes 1 Food to restore 1 Health (if below max). Resets the hunger clock.
 
-## 🌙 Rest Mechanics & Locations
+## 😴 Rest Locations
+**Alleyway Rest (Medium Risk)**:
 
-```mermaid
-graph TD
-    Rest[Choose Rest Spot] --> Street[Street Rest - Free]
-    Rest --> Alley[Alleyway Rest - Medium Risk]
-    Rest --> Rooftop[Bakery Rooftop - Safe]
+- With Nesting Materials: Costs 1 material. Protects you from dog attacks; low risk of a rival cat stealing food. Success grants +2 Stamina and +1 Health.
 
-    Street -->|30% Independent Roll| Pet[Human Pet: +1 HP & +1 Stamina<br/>3 Pets = +1 Human Bond]
-    Street -->|30% Independent Roll| Kick[Kid Kick: -1 HP]
-    Street -->|40% Independent Roll| Dog1[Triggers Dog Encounter]
-    Street -->|If No Kick & No Dog| Peace1[Peaceful Rest: +1 Stamina]
+- Unprotected: Risk of rival cat attacks (stealing food/stealth-peeing) or dog encounters. Peaceful rests grant +2 Stamina.
 
-    Alley -->|With Materials| MatRest[Costs 1 Material<br/>Dog Immune!]
-    Alley -->|No Materials| Unprotected[Unprotected Rest]
+**Bakery Rooftop (Safe)**:
 
-    MatRest -->|20% Risk| Rival1[Rival Cat: -1 HP & Steals 1 Food]
-    MatRest -->|80% Success| MatSuccess[Peaceful Rest: +2 Stamina & +1 HP]
+- Costs 1 Stamina and grants 1 Health. Requires at least 1 Stamina to climb.
 
-    Unprotected -->|40% Independent Roll| Rival2[Rival Cat: -1 HP & Steals 1 Food]
-    Unprotected -->|30% Independent Roll| Dog1
-    Unprotected -->|If No Rival & No Dog| Peace2[Peaceful Rest: +1 Stamina]
+## 🐕 Dog Encounters
+When confronted by a stray dog, you can handle the situation in two ways:
 
-    Rooftop -->|Requires 2+ Stamina| SafeRest[Costs 2 Stamina: +1 HP]
-    Rooftop -->|Stamina < 2| Exhausted[Climb Fails: Turn Refunded]
-```
+- Toss 1 Food (Distraction):
+    - Leave in peace: Grants a 5-turn Friendly Vibe boost to human petting chances.
+    - Attack the distracted dog: High risk/reward. Successful attacks yield +0.5 Food and +1 Cat Ally; failures result in a -2 Health bite.
+- Attempt to Scare:
+    - Uses a dynamic success chance based on your current health, stamina, and existing cat allies. Success grants +1 Cat Ally (with an adrenaline surge if your health is $\le$ 2); failure results in -2 Health.
 
----
-
-## 🐕 Dog Encounter Handler
-
-```mermaid
-graph TD
-    Dog[Dog Encounter] --> Action{Choose Action}
-    Action -->|Toss Food| Toss[Costs 1 Food<br/>Safely Escape]
-    Action -->|Attempt Scare| CheckStats{Check Stats}
-
-    CheckStats -->|HP ≤ 2| Adrenaline[Adrenaline Scare<br/>20% Success]
-    CheckStats -->|HP > 2 and Stamina > 1| Confident[Scare Attempt<br/>30% Success]
-    CheckStats -->|HP > 2 and Stamina ≤ 1| FailCheck[Too Weak to Scare<br/>Automatic Fail]
-
-    Adrenaline -->|Success| WinAlly[+1 Cat Ally]
-    Confident -->|Success| WinAlly
-    Adrenaline -->|Failure| Hurt[-2 HP Damage]
-    Confident -->|Failure| Hurt
-    FailCheck --> Hurt
-```
-
----
-
-## 🚀 How to Run
-
+## How to run
 ```bash
 node index.js
 ```
