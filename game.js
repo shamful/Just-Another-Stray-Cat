@@ -19,12 +19,15 @@ const playerStats =
     "nestingMaterials": 0,
     "pettedCount": 0, // when this reaches 3 increases humanBond by 1
     "humanBond": 0,
-    "catAllies": 0, // if dog attack won, this increases by 1
+    "scentMarks": 0, // if dog attack won, this increases by 1
+    "securedAreas": 0, // Three scent marks equal 1 den. 3 Dens win the game "King of territory"
     "friendlyVibeCountdown": 0 // if dog fed and left to eat in peace -> more chance of human interaction
 };
 
 const historyGameplay = [];
 let currentTurnLog = [];
+
+
 
 function recordTurn(log){
     let turnDetails = {
@@ -127,24 +130,43 @@ function displayStats(){
   Nesting Materials (cardboard, rags): ${playerStats.nestingMaterials}
   Human Petted: ${playerStats.pettedCount}
   Human Bond: ${playerStats.humanBond}
-  Cat Allies: ${playerStats.catAllies}
+  Scent Marks: ${playerStats.scentMarks}
+  Secured Areas: ${playerStats.securedAreas}
   Friendly Vibe: ${playerStats.friendlyVibeCountdown}
 ==========================`
     );
 }
 
+const areaNames = [
+    "The Fish Market District 🐟",
+    "The Bakery Alleyways 🍞",
+    "The Riverside Wharves 🚢"
+];
 
+const API_URL = `http://localhost:3000/api/chat`;
+// GROQ
+// const MODEL_NAME = 'llama-3.3-70b-versatile';
+// OPENROUTER
+// const MODEL_NAME = 'openrouter/free';
+// const MODEL_NAME = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+const MODEL_NAME = 'poolside/laguna-s-2.1:free'; // this worked pretty well
+// const MODEL_NAME = 'cohere/north-mini-code:free';
+// Local
+// const MODEL_NAME = 'huihui_ai/dolphin3-abliterated:latest';
+// const MODEL_NAME = 'huihui_ai/qwen2.5-abliterate:7b-instruct';
+// const MODEL_NAME = 'qwen2.5:7b';
 
 // Main game loop
 function gameLoop(){
-    // 1. Check if the cat is dead before starting the turn
+    // Check if game won or lost before starting next turn
 
-    
-    if ( playerStats.catAllies >= 3 ){
+    if ( playerStats.securedAreas >= 3 ){
         displayStats();
-        let deathMessage = playerStats.health <= 0 ? '\n🪦 Unfortunately, your injuries from living on the streets were too severe. Your cat allies mourn your death for a brief moment and move on... ' : '';
-        log("Outcome", `\n👑 VICTORY! You scared off enough dogs to earn the respect of the city strays. You rule the streets!${ deathMessage }`);
+        let deathMessage = playerStats.health <= 0 ? '\n🪦 Unfortunately, your injuries from living on the streets were too severe. You established your territory but succumbed to your wounds... a tragic end for a true street legend!' : '';
+        log("Outcome", `\n👑 VICTORY! King of the Territory! You rule the streets!${ deathMessage }`);
         recordTurn([...currentTurnLog]);
+        buildStoryPrompt(historyGameplay);
+       
         rl.close();
         return;
     }
@@ -154,6 +176,8 @@ function gameLoop(){
         let deathMessage = playerStats.health <= 0 ? '\n🪦 Unfortunately, your injuries from living on the streets were too severe. You passed away peacefully in their arms on the ride home, finally warm and loved, but dead...':'';
         log("Outcome", `\n🏠 VICTORY! A kind human took you off the streets. You're an indoor cat now!${ deathMessage }`);
         recordTurn([...currentTurnLog]);
+        buildStoryPrompt(historyGameplay);
+        
         rl.close();
         return;
     }
@@ -162,14 +186,18 @@ function gameLoop(){
         displayStats();
         log("Outcome", "\n💀 Game Over! Our stray cat couldn't survive the city... 🎻🪦");
         recordTurn([...currentTurnLog]);
+        buildStoryPrompt(historyGameplay);
+        
         rl.close();
         return;
     }
 
-    // 2. Display current status
+
+
+    // Display current status
     displayStats();
 
-    // 3. Print main menu options
+    // Print main menu options
     console.log("\nWhat should we do?");
     console.log("1. Scavenge");
     console.log("2. Walk the Street");
@@ -282,8 +310,10 @@ function walkTheStreet(){
         }
 
         if(!dogAttack && !humanAttack){
+            adjustHealth(0.5);
             console.log("\n************");
             log("Outcome", "😹 That was a nice walk.");
+            log("Outcome", "🔺 Gained 0.5 Health");
             console.log("************");
         }
 
@@ -458,7 +488,7 @@ function handleDogPrompt(){
                 function askDogAction(){ // in function to callback if input wrong
                     //  ask user if they want to attack the dog while the dog is distracted or leave it in peace
                     // Leaving dog in peace enables friendly vibe which increases chance of human interaction (petting)
-                    // Attacking distracted dog increases chance of win and chance to gain half food back plus 1 cat ally
+                    // Attacking distracted dog increases chance of win and chance to gain half food back plus 1 scented spot
                     console.log("\nWhile the dog is distracted do you..."
                                 +"\n1. Leave the dog in peace"
                                 +"\n2. Attack the dog while it eats the food you gave it");
@@ -477,14 +507,16 @@ function handleDogPrompt(){
                         } else if (dogDistractedChoice === 2){
                             log("Action", `You go in for the attack while the dog is distracted with his food...`);
                             // user attacks dog. roll dice on chance of scaring dogg away, if success keep 0.5 food?
-                            let dogAttackScare = 0.20 + playerStats.health * 0.06  +  playerStats.stamina  * 0.06 + playerStats.catAllies/10;
+                            let dogAttackScare = 0.20 + playerStats.health * 0.06  +  playerStats.stamina  * 0.06;
                             let scareDogAway = Math.random() < dogAttackScare;
                             if( scareDogAway ){
                                 // user succeeds in scaring dog
-                                log("Outcome", "🔺 Gained half a ration of Food and 1 Cat Ally.");
+                                log("Outcome", "🐶 The dog takes a critical hit and runs off, leaving some of the food behind.");
+                                log("Outcome", "🔺 Gained half a ration of Food and marked 1 spot with your scent.");
                                 if( playerStats.friendlyVibeCountdown > 0 ) log("Outcome", "Friendly vibe reset. You no longer emit friendly vibes to humans.");
                                 adjustFood(0.5);
-                                adjustCatAllies(1);
+                                adjustScentMarks(1);
+
                                 playerStats.friendlyVibeCountdown = 0;
 
                                 advanceTurn();
@@ -519,21 +551,30 @@ function handleDogPrompt(){
 }
 
 function attemptDogScare(){
-    let dogScareChance = 0.10 + playerStats.health * 0.03  +  playerStats.stamina  * 0.03 + playerStats.catAllies/10;
+    let dogScareChance = 0.10 + playerStats.health * 0.03  +  playerStats.stamina  * 0.03;
     let scareDogAway = Math.random() < dogScareChance;
 
+    // Last chance adrenalise surge if health critical scareDogAway roll failed
+    let adrenalineTriggered = false;
+    if(!scareDogAway && playerStats.health <= 2){
+        if(Math.random() < 0.50){
+            scareDogAway = true;
+            adrenalineTriggered = true;
+        }
+    }
+
     if( scareDogAway ){
-        adjustCatAllies(1);
+        adjustScentMarks(1);
         adjustStamina(-1);
 
-        if( playerStats.health <= 2 ){
-            log("Outcome", "\n***ADRENALINE SURGE***"
-            +"\n🦁 In desperation, something takes over and we channel OUR inner lion. Hissing with rage, foaming at the mouth, we arch our back and puff our fur, somehow causing the dog to piss itself and run away whimpering!");
+        console.log("\n************");
+        if( adrenalineTriggered){
+            log("Outcome", "\n⚡ ***ADRENALINE SURGE*** ⚡"
+            +"\n🦁 In desperation, something takes over. Foaming at the mouth and hissing with feral rage, you arch your back and make the dog flee in terror!\nYou relace and mark the area with your scent.");
         } else {
-            console.log("\n************");
-            log("Outcome", "😾 You puff up your fur and hiss fiercely! The dog backs down!");
+            log("Outcome", "😾 You puff up your fur and hiss fiercely! The dog backs down and you mark the area with your scent.");
         }
-        log("Outcome", "🔺 Gain 1 Cat Ally.");
+        log("Outcome", "🔺 Gain 1 Scent Mark");
         console.log("************");
 
         advanceTurn();
@@ -583,10 +624,84 @@ function adjustHumanBond(x){
     playerStats.humanBond = Math.max(playerStats.humanBond, 0);
 }
 
-function adjustCatAllies(x){
-    playerStats.catAllies += x;
-    playerStats.catAllies = Math.max(playerStats.catAllies, 0);
+function adjustScentMarks(x){
+    playerStats.scentMarks += x;
+
+    if(playerStats.scentMarks >= 3){
+        playerStats.scentMarks = 0;
+        playerStats.securedAreas += 1;
+
+        const areaSecured = areaNames[playerStats.securedAreas - 1];
+
+        log("Outcome", `🌿 With three strong scent marks you have secured ${areaSecured}`);
+        log("Outcome", `🔺 Secured Area! Total Areas: ${playerStats.securedAreas}/3 🏙️`);
+    } else {
+        let needed = 3 - playerStats.scentMarks;
+        log("Outcome", `${needed} more scent mark${needed>1? 's':''} needed to secure an area.`);
+
+    }
 }
+
+// End game AI summary functions
+function buildStoryPrompt(history) {
+    const storyPrompt = `CRITICAL RULES:
+- Write strictly in the first-person ("I", "my claws", "my fur").
+- Never act as an AI assistant, chatbot, or reviewer. 
+- Never mention turns, game stats, code, UI elements, or HP values.
+- Never write a bulleted list or a summary. 
+- Weave in specific, vivid echoes of the cat's most desperate struggles and hard-won victories/losses from the log, making it feel like a deeply personal memoir of this specific life.
+- Write a continuous, highly descriptive narrative capturing the smells of the alley, the bite of hunger, the flash of rival teeth, and the hard-earned triumph of survival.
+
+GAME LOG:` 
+    + history
+    .map((entry) => {
+      const stats = entry.playerStats;
+      const logs = entry.log.map((l) => l.trim()).join(' | ');
+
+      // Filter out pure boilerplate and capture core narrative
+      return `[Turn ${stats.turn}] (HP: ${stats.health}/${stats.maxHealth}, Food: ${stats.food}, Districts: ${stats.securedAreas}/3) -> ${logs}`;
+    })
+    .join('\n');
+
+    console.log(storyPrompt);
+    console.log("\nWait for your story summary. This may take a couple minutes...");
+
+
+    getAISummary(storyPrompt).then( (story) => {
+        console.log("~~~~~~~~~ A summary of your adventure! ~~~~~~~~~\n" + story);
+    });
+}
+
+async function getAISummary(promptText) {
+    try{
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: [
+                    {   
+                    role: 'system', 
+                    content: 'You are a gritty fiction author. Transform the raw game summary into an immersive first-person short story. Never mention turns, stats, or act as an AI assistant, but ensure you write at least 300 characters to explain the journey the user went through from the perspective of the cat.' 
+                    },
+                    { role: 'user', content: promptText }, 
+                ],
+                temperature: 0.8,
+                keep_alive: 0
+            })
+        });
+
+        const data = await response.json();
+        const story = data.choices[0].message.content;
+        
+        return story;
+
+    } catch (error) {
+        console.error("Failed to fetch story from AI proxy: ", error);
+        return "The cat's tale was lost in the wind...";
+    }
+}
+
 
 // Game init
 start();
