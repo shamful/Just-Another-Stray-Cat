@@ -330,7 +330,6 @@ function walkTheStreet(){
 }
 
 function eatFood(){
-    
     if(playerStats.food > 0){
         if(playerStats.health < playerStats.maxHealth){
             adjustFood(-1);
